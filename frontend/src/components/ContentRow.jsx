@@ -22,6 +22,7 @@ export default function ContentRow({ title, icon: Icon, children }) {
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
+            aria-label={'Scroll ' + title + ' left'}
             onClick={() => handleScroll('left')}
             style={{
               width: '36px',
@@ -38,6 +39,7 @@ export default function ContentRow({ title, icon: Icon, children }) {
             <ChevronLeft size={18} />
           </button>
           <button
+            aria-label={'Scroll ' + title + ' right'}
             onClick={() => handleScroll('right')}
             style={{
               width: '36px',
@@ -62,7 +64,7 @@ export default function ContentRow({ title, icon: Icon, children }) {
         style={{
           display: 'grid',
           gridAutoFlow: 'column',
-          gridAutoColumns: 'minmax(200px, 1fr)',
+          gridAutoColumns: 'minmax(280px, 1fr)',
           gap: '20px',
           overflowX: 'auto',
           scrollSnapType: 'x mandatory',

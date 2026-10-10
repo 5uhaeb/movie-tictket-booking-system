@@ -56,7 +56,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header style={{
+      <header className="cv-header" style={{
         position: 'sticky',
         top: 0,
         zIndex: 1000,
@@ -67,20 +67,20 @@ export default function Navbar() {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="container cv-header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           
           {/* Logo & Main Nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
+          <div className="cv-brand-nav" style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
               <div style={{
                 width: '38px',
                 height: '38px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, var(--accent-red) 0%, #b20710 100%)',
+                background: 'var(--accent-red)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(229,9,20,0.5)'
+                boxShadow: 'none'
               }}>
                 <Film size={22} color="#ffffff" />
               </div>
@@ -89,7 +89,7 @@ export default function Navbar() {
               </span>
             </Link>
 
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <nav className="cv-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
               <Link to="/movies" style={{
                 color: isActive('/movies') ? 'var(--accent-red)' : 'var(--text-secondary)',
                 fontWeight: isActive('/movies') ? '600' : '500',
@@ -127,10 +127,12 @@ export default function Navbar() {
           </div>
 
           {/* Right Side Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+          <div className="cv-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
             
             {/* Search Button */}
             <button
+              aria-label="Search movies and events"
+              className="cv-search-button"
               onClick={() => setShowSearchModal(true)}
               style={{
                 background: 'rgba(255, 255, 255, 0.06)',
@@ -325,7 +327,7 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="cv-auth-actions" style={{ display: 'flex', gap: '10px' }}>
                 <Link to="/login" className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.88rem' }}>
                   Sign In
                 </Link>

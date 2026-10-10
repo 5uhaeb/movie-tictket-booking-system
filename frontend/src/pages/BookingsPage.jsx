@@ -65,7 +65,7 @@ export default function BookingsPage() {
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       <div style={{ borderBottom: '1px solid var(--border-color)', padding: '40px 0 0' }}>
         <div className="container">
           <h1 style={{ fontSize: '2rem', color: '#fff', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
