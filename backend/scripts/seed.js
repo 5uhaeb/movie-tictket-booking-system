@@ -37,9 +37,11 @@ const rowName = (index) => {
   return `R${index - 25}`;
 };
 
-const makeSeatLayout = (capacity) => {
-  const columns = 10;
+const makeSeatLayout = (capacity, theatreIndex, screenNumber) => {
+  const columns = 8 + (theatreIndex % 16);
   const rows = Math.ceil(capacity / columns);
+  const premiumRows = Math.min(rows - 1, 1 + Math.floor(theatreIndex / 16));
+  const reclinerRows = Math.min(rows - premiumRows, 1 + (screenNumber % 2));
 
   return Array.from({ length: capacity }, (_, index) => {
     const row = Math.floor(index / columns);
@@ -47,10 +49,10 @@ const makeSeatLayout = (capacity) => {
     let seatType = 'STANDARD';
     let priceMultiplier = 1;
 
-    if (row >= rows - 2) {
+    if (row >= rows - reclinerRows) {
       seatType = 'RECLINER';
       priceMultiplier = 1.8;
-    } else if (row >= rows - 5) {
+    } else if (row >= rows - reclinerRows - premiumRows) {
       seatType = 'PREMIUM';
       priceMultiplier = 1.3;
     }
@@ -78,11 +80,11 @@ const moviesData = [
 
     language: 'English',
 
-    duration: null,
+    duration: 144,
 
-    director: '',
+    director: 'Destin Daniel Cretton',
 
-    cast: [],
+    cast: ['Tom Holland', 'Zendaya', 'Sadie Sink', 'Mark Ruffalo'],
 
     genre: [
       'Action',
@@ -123,15 +125,15 @@ const moviesData = [
   {
     title: 'The Paradise',
 
-    date: '2026-02-01',
+    date: '2026-09-24',
 
     language: 'Telugu',
 
-    duration: null,
+    duration: 174,
 
-    director: '',
+    director: 'Srikanth Odela',
 
-    cast: [],
+    cast: ['Nani', 'Mohan Babu', 'Kayadu Lohar', 'Raghav Juyal', 'Sonali Kulkarni'],
 
     genre: [
       'Action',
@@ -172,15 +174,15 @@ const moviesData = [
   {
     title: 'Dhurandhar',
 
-    date: '2026-12-05',
+    date: '2025-12-05',
 
     language: 'Hindi',
 
-    duration: null,
+    duration: 214,
 
-    director: '',
+    director: 'Aditya Dhar',
 
-    cast: [],
+    cast: ['Ranveer Singh', 'Akshaye Khanna', 'Sanjay Dutt', 'R. Madhavan', 'Arjun Rampal'],
 
     genre: [
       'Action',
@@ -188,48 +190,47 @@ const moviesData = [
       'Drama',
     ],
 
-    certification: 'UA',
+    certification: 'A',
 
     description:
       'A high-intensity action thriller.',
 
     poster:
-      'https://www.impawards.com/intl/india/2026/posters/dhurandhar_the_revenge_xlg.jpg',
+      'https://upload.wikimedia.org/wikipedia/en/6/6f/Dhurandhar_film_poster.jpg',
 
     backdrop:
       'https://assets-in.bmscdn.com/discovery-catalog/events/et00478890-rpenrjddmy-landscape.jpg',
 
     trailerUrl:
-      'https://www.youtube.com/watch?v=rV6kEsAyrdY',
+      'https://www.youtube.com/watch?v=BKOVzHcjEIo',
 
     trailer: {
       provider: 'youtube',
 
-      videoId: 'rV6kEsAyrdY',
+      videoId: 'BKOVzHcjEIo',
 
-      url: 'https://www.youtube.com/watch?v=rV6kEsAyrdY',
+      url: 'https://www.youtube.com/watch?v=BKOVzHcjEIo',
 
       title: 'Dhurandhar Official Trailer',
 
-      thumbnailUrl:
-        'https://i.ytimg.com/vi/rV6kEsAyrdY/hqdefault.jpg',
+      thumbnailUrl: 'https://i.ytimg.com/vi/BKOVzHcjEIo/hqdefault.jpg',
     },
 
-    releaseType: 'COMING_SOON',
+    releaseType: 'CATALOG',
   },
 
   {
     title: 'Bethlehem Kudumba Unit',
 
-    date: '2026-03-01',
+    date: '2026-08-21',
 
     language: 'Malayalam',
 
-    duration: null,
+    duration: 157,
 
-    director: '',
+    director: 'Girish A. D.',
 
-    cast: [],
+    cast: ['Nivin Pauly', 'Mamitha Baiju', 'Sangeeth Prathap', 'Srinda'],
 
     genre: [
       'Drama',
@@ -722,7 +723,7 @@ const venuesData = [
 
     screens: 1,
 
-    active: false,
+    active: true,
 
     type: 'CINEMA',
   },
@@ -747,7 +748,7 @@ const venuesData = [
 
     screens: 3,
 
-    active: false,
+    active: true,
 
     type: 'CINEMA',
   },
@@ -772,7 +773,7 @@ const venuesData = [
 
     screens: 1,
 
-    active: false,
+    active: true,
 
     type: 'CINEMA',
   },
@@ -797,7 +798,7 @@ const venuesData = [
 
     screens: 1,
 
-    active: false,
+    active: true,
 
     type: 'CINEMA',
   },
@@ -826,23 +827,86 @@ const venuesData = [
 
     type: 'EVENT_VENUE',
   },
+
+  // Clearly labelled demo cinemas for cities exposed by frontend CityContext.
+  ...[
+    ['anantapur-demo-theatre', 'Anantapur'],
+    ['eluru-demo-theatre', 'Eluru'],
+    ['ongole-demo-theatre', 'Ongole'],
+    ['machilipatnam-demo-theatre', 'Machilipatnam'],
+    ['srikakulam-demo-theatre', 'Srikakulam'],
+    ['vizianagaram-demo-theatre', 'Vizianagaram'],
+    ['bhimavaram-demo-theatre', 'Bhimavaram'],
+  ].map(([key, city]) => ({
+    key,
+    name: `CineVerse ${city} Demo Theatre`,
+    chain: 'CineVerse Demo',
+    city,
+    address: `${city}, Andhra Pradesh (demo venue)`,
+    capacity: 120,
+    screens: 3,
+    active: true,
+    type: 'CINEMA',
+  })),
 ];
 
 /* ============================================================
    SHOW DATES
 ============================================================ */
 
-const showTimes = [
-  '09:30 AM',
-  '12:30 PM',
-  '03:30 PM',
-  '06:30 PM',
-  '09:30 PM',
-];
-
-const DEMO_SHOW_DAYS = 5;
+const SHOW_DATE_KEYS = ['2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'];
+const DAILY_SHOW_TIMES = ['10:00 AM', '02:00 PM', '06:00 PM'];
+const SHOW_DURATION_MINUTES = 150;
+const SCREEN_CLEANING_MINUTES = 30;
 const DEMO_THEATRE_KEY = 'cineverse-demo-theatre';
-const DEMO_SHOW_KEY_PREFIX = 'cineverse-demo-show-';
+const SHOW_KEY_PREFIX = 'cineverse-show-2026-10-';
+const LEGACY_DEMO_SHOW_KEY_PREFIX = 'cineverse-demo-show-';
+
+const datePartsInKolkata = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(date);
+
+const timeInKolkata = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date);
+  return Number(parts.find((part) => part.type === 'hour').value) * 60
+    + Number(parts.find((part) => part.type === 'minute').value);
+};
+
+const formatShowTime = (minutes) => {
+  const hour24 = Math.floor(minutes / 60) % 24;
+  const minute = minutes % 60;
+  const suffix = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 || 12;
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${suffix}`;
+};
+
+const showDateAtKolkataNoon = (dateKey) => new Date(`${dateKey}T06:30:00.000Z`);
+
+const showTimeToMinutes = (time) => {
+  const match = String(time).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) throw new Error(`Invalid seeded show time: ${time}`);
+  const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+  return hour * 60 + Number(match[2]);
+};
+
+const showTimeTo24Hour = (time) => {
+  const minutes = showTimeToMinutes(time);
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+
+const scheduledStartDate = (dateKey, time) => new Date(`${dateKey}T${showTimeTo24Hour(time)}:00+05:30`);
+
+const currentDayShowTimes = (now = new Date()) => {
+  const first = Math.ceil((timeInKolkata(now) + 30) / 15) * 15;
+  const times = [first, first + 15, first + 30];
+  const latestEnd = Math.max(...moviesData.map((movie) => movie.duration || SHOW_DURATION_MINUTES)) + SCREEN_CLEANING_MINUTES;
+  if (times.some((time) => time + latestEnd >= 24 * 60)) {
+    throw new Error('Cannot fit three future show starts and their runtimes on today’s remaining schedule without changing the requested date range.');
+  }
+  return times.map(formatShowTime);
+};
 
 /* ============================================================
    MAIN SEED
@@ -863,6 +927,21 @@ const seedData = async () => {
     }
     if (!isLocalDatabase) {
       console.warn('[Seed safety] Remote demo seeding is explicitly enabled; verify this is a development database.');
+    }
+
+    const seedStartedAt = new Date();
+    const todayInKolkata = datePartsInKolkata(seedStartedAt);
+    if (todayInKolkata > SHOW_DATE_KEYS[SHOW_DATE_KEYS.length - 1] || SHOW_DATE_KEYS.some((dateKey) => dateKey < todayInKolkata)) {
+      throw new Error(`The fixed show range ${SHOW_DATE_KEYS[0]} through ${SHOW_DATE_KEYS.at(-1)} cannot all be seeded as future shows today (${todayInKolkata}, Asia/Kolkata). No database records were changed.`);
+    }
+    const dailyTimes = new Map(SHOW_DATE_KEYS.map((dateKey) => [
+      dateKey,
+      dateKey === todayInKolkata ? currentDayShowTimes(seedStartedAt) : DAILY_SHOW_TIMES,
+    ]));
+    for (const [dateKey, times] of dailyTimes) {
+      if (times.some((time) => scheduledStartDate(dateKey, time) <= seedStartedAt)) {
+        throw new Error(`The requested show range contains a show that would not be in the future: ${dateKey} ${times.join(', ')}.`);
+      }
     }
 
     await mongoose.connect(MONGODB_URI);
@@ -889,6 +968,8 @@ const seedData = async () => {
     ======================================================== */
 
     const movieDocs = new Map();
+    let moviesCreated = 0;
+    let moviesUpdated = 0;
 
     for (const item of moviesData) {
       const movieSlug =
@@ -964,6 +1045,7 @@ const seedData = async () => {
           'ACTIVE',
       };
 
+      const existingMovie = await Movie.exists({ slug: movieSlug });
       const movie =
         await Movie.findOneAndUpdate(
           {
@@ -987,6 +1069,8 @@ const seedData = async () => {
               true,
           }
         );
+      if (existingMovie) moviesUpdated++;
+      else moviesCreated++;
 
       movieDocs.set(
         item.title,
@@ -1003,8 +1087,11 @@ const seedData = async () => {
     ======================================================== */
 
     const venueDocs = [];
+    let venuesCreated = 0;
+    let venuesUpdated = 0;
 
     for (const item of venuesData) {
+      const existingVenue = await Venue.exists({ seedKey: item.key });
       const venue =
         await Venue.findOneAndUpdate(
           {
@@ -1063,9 +1150,7 @@ const seedData = async () => {
                       'Air Conditioning',
                     ],
 
-              totalCapacity:
-                item.capacity *
-                item.screens,
+              totalCapacity: item.capacity * (item.key === DEMO_THEATRE_KEY ? 7 : Math.max(3, item.screens)),
 
               status:
                 item.active
@@ -1088,6 +1173,8 @@ const seedData = async () => {
               true,
           }
         );
+      if (existingVenue) venuesUpdated++;
+      else venuesCreated++;
 
       venueDocs.push({
         venue,
@@ -1119,6 +1206,10 @@ const seedData = async () => {
     ======================================================== */
 
     const screenDocs = [];
+    let screensCreated = 0;
+    let screensUpdated = 0;
+    let screensProtected = 0;
+    let theatreIndex = 0;
 
     for (const item of venueDocs) {
       if (
@@ -1128,17 +1219,12 @@ const seedData = async () => {
         continue;
       }
 
-      if (
-        !item.active
-      ) {
-        continue;
-      }
+      if (!item.active) continue;
+      const currentTheatreIndex = theatreIndex++;
 
-      const screenCount =
-        Math.min(
-          item.screens,
-          4
-        );
+      const screenCount = item.key === DEMO_THEATRE_KEY
+        ? 7
+        : Math.max(3, Math.min(item.screens, 4));
 
       for (
         let screenNumber = 1;
@@ -1149,13 +1235,20 @@ const seedData = async () => {
         const seedKey =
           `${item.key}-screen-${screenNumber}`;
 
-        const seatLayout =
-          makeSeatLayout(
-            item.capacity
-          );
-
-        const screen =
-          await Screen.findOneAndUpdate(
+        const seatLayout = makeSeatLayout(item.capacity, currentTheatreIndex, screenNumber);
+        const existingScreen = await Screen.findOne({ seedKey });
+        const screenShowIds = existingScreen
+          ? await Show.find({ screen: existingScreen._id }).distinct('_id')
+          : [];
+        const screenHasBookings = screenShowIds.length
+          ? Boolean(await Booking.exists({ show: { $in: screenShowIds } }))
+          : false;
+        if (screenHasBookings) screensProtected++;
+        else if (existingScreen) screensUpdated++;
+        else screensCreated++;
+        const screen = screenHasBookings
+          ? existingScreen
+          : await Screen.findOneAndUpdate(
             {
               seedKey,
             },
@@ -1180,14 +1273,9 @@ const seedData = async () => {
                     ? 'Dolby Atmos'
                     : 'Dolby Digital',
 
-                rows:
-                  Math.ceil(
-                    item.capacity /
-                      10
-                  ),
+                rows: Math.ceil(item.capacity / (8 + (currentTheatreIndex % 16))),
 
-                columns:
-                  10,
+                columns: 8 + (currentTheatreIndex % 16),
 
                 totalSeats:
                   item.capacity,
@@ -1223,56 +1311,39 @@ const seedData = async () => {
 
     /* ========================================================
        SHOWS
-       Only the requested 4 movies.
+       Three screenings per theatre and assigned movie for each requested date.
     ======================================================== */
 
-    const demoVenue = venueByKey.get(DEMO_THEATRE_KEY);
-    const demoScreens = screenDocs
-      .filter(({ venue }) => venue.key === DEMO_THEATRE_KEY)
-      .sort((a, b) => a.screen.name.localeCompare(b.screen.name));
-    if (!demoVenue || demoScreens.length < moviesData.length) {
-      throw new Error('The demo theatre must have one active screen for each seeded movie.');
-    }
-
+    const activeCinemaVenues = venueDocs.filter((item) => item.type === 'CINEMA' && item.venue.status === 'ACTIVE');
+    const scheduleByVenue = new Map();
     let showsCreated = 0;
     let showsUpdated = 0;
     let showsProtected = 0;
-    const localDateParts = new Map(
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Kolkata',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).formatToParts(new Date()).map((part) => [part.type, part.value])
-    );
-    const today = new Date(Date.UTC(
-      Number(localDateParts.get('year')),
-      Number(localDateParts.get('month')) - 1,
-      Number(localDateParts.get('day'))
-    ));
-    const demoShowKeys = [];
+    const seededShowKeys = [];
+    let venueIndex = 0;
 
-    for (let movieIndex = 0; movieIndex < moviesData.length; movieIndex++) {
-      const movieData = moviesData[movieIndex];
-      const movie = movieDocs.get(movieData.title);
-      const { screen } = demoScreens[movieIndex];
-      if (!movie || movie.status !== 'ACTIVE' || demoVenue.status !== 'ACTIVE') {
-        throw new Error(`Missing active demo records for ${movieData.title}.`);
+    for (const venueInfo of activeCinemaVenues) {
+      const venueScreens = screenDocs
+        .filter(({ venue }) => venue.key === venueInfo.key)
+        .sort((a, b) => a.screen.name.localeCompare(b.screen.name));
+      if (venueScreens.length < 3) throw new Error(`${venueInfo.name} needs at least three active screens for the requested show schedule.`);
+      const scheduleScreens = venueInfo.key === DEMO_THEATRE_KEY ? venueScreens.slice(-3) : venueScreens.slice(0, 3);
+
+      const movieIndex = venueIndex % moviesData.length;
+      const movie = movieDocs.get(moviesData[movieIndex].title);
+      if (!movie || movie.status !== 'ACTIVE' || venueInfo.venue.status !== 'ACTIVE') {
+        throw new Error(`Missing active movie or theatre records for ${venueInfo.name}.`);
       }
+      const venueDailyCounts = new Map();
 
-      const firstShowDate = new Date(today);
-      const releaseDay = new Date(movie.releaseDate);
-      releaseDay.setUTCHours(0, 0, 0, 0);
-      if (releaseDay > firstShowDate) firstShowDate.setTime(releaseDay.getTime());
-
-      for (let dayOffset = 0; dayOffset < DEMO_SHOW_DAYS; dayOffset++) {
-        const showDate = new Date(firstShowDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
-        showDate.setUTCHours(12, 0, 0, 0);
-        const dateKey = showDate.toISOString().slice(0, 10);
-
-        for (let timeIndex = 0; timeIndex < showTimes.length; timeIndex++) {
-          const time = showTimes[timeIndex];
-          const basePrice = 180 + movieIndex * 20 + timeIndex * 10;
+      for (const dateKey of SHOW_DATE_KEYS) {
+        const showDate = showDateAtKolkataNoon(dateKey);
+        if (showDate < movie.releaseDate) throw new Error(`${movie.title} is scheduled before its release date at ${venueInfo.name}.`);
+        const times = dailyTimes.get(dateKey);
+        for (let timeIndex = 0; timeIndex < times.length; timeIndex++) {
+          const time = times[timeIndex];
+          const { screen } = scheduleScreens[timeIndex];
+          const basePrice = 150 + movieIndex * 20;
           const seatStatus = screen.seatLayout.map((seat) => ({
             seatId: `${seat.row}${seat.number}`,
             row: seat.row,
@@ -1285,20 +1356,19 @@ const seedData = async () => {
             holdExpiresAt: null,
           }));
           const timeKey = time.replace(/\W/g, '');
-          const seedKey = `${DEMO_SHOW_KEY_PREFIX}${movie.slug}-${dateKey}-${timeKey}`;
-          demoShowKeys.push(seedKey);
+          const seedKey = `${SHOW_KEY_PREFIX}${venueInfo.key}-${movie.slug}-${dateKey}-${timeKey}`;
+          seededShowKeys.push(seedKey);
           const existingShow = await Show.findOne({ seedKey }).select('_id');
-          const hasBooking = existingShow
-            ? Boolean(await Booking.exists({ show: existingShow._id }))
-            : false;
-
-          const update = {
+          const hasBooking = existingShow ? Boolean(await Booking.exists({ show: existingShow._id })) : false;
+          const endTime = formatShowTime(showTimeToMinutes(time) + (movie.duration || SHOW_DURATION_MINUTES));
+          const result = await Show.updateOne({ seedKey }, {
             $set: {
               movie: movie._id,
-              venue: demoVenue._id,
+              venue: venueInfo.venue._id,
               screen: screen._id,
               showDate,
               startTime: time,
+              endTime,
               language: movie.language,
               format: '2D',
               basePrice,
@@ -1306,32 +1376,31 @@ const seedData = async () => {
               ...(hasBooking ? {} : { seatStatus }),
             },
             $setOnInsert: { seedKey },
-          };
-
-          const result = await Show.updateOne({ seedKey }, update, {
-            upsert: true,
-            runValidators: true,
-          });
+          }, { upsert: true, runValidators: true });
           if (result.upsertedCount) showsCreated++;
           else showsUpdated++;
           if (hasBooking) showsProtected++;
+          venueDailyCounts.set(dateKey, (venueDailyCounts.get(dateKey) || 0) + 1);
         }
       }
+      scheduleByVenue.set(venueInfo.key, { movie, counts: venueDailyCounts });
+      venueIndex++;
     }
 
-    const staleDemoShows = await Show.find({
-      seedKey: { $regex: `^${DEMO_SHOW_KEY_PREFIX}`, $nin: demoShowKeys },
+    const staleSeededShows = await Show.find({
+      $or: [
+        { seedKey: { $regex: `^${SHOW_KEY_PREFIX}`, $nin: seededShowKeys } },
+        { seedKey: { $regex: `^${LEGACY_DEMO_SHOW_KEY_PREFIX}` } },
+      ],
       status: 'ACTIVE',
     }).select('_id');
     let staleShowsCancelled = 0;
-    for (const staleShow of staleDemoShows) {
-      const hasBooking = await Booking.exists({ show: staleShow._id });
-      if (!hasBooking) {
+    for (const staleShow of staleSeededShows) {
+      if (!(await Booking.exists({ show: staleShow._id }))) {
         await Show.updateOne({ _id: staleShow._id }, { $set: { status: 'CANCELLED' } });
         staleShowsCancelled++;
       }
     }
-
     /* ========================================================
        EVENTS
        EXACTLY 2
@@ -1453,55 +1522,70 @@ const seedData = async () => {
     const seededMovieSlugs = moviesData.map((item) => makeSlug(item.title));
     const seededEventSlugs = eventsData.map((item) => item.slug);
     const seededMovies = await Movie.find({ slug: { $in: seededMovieSlugs }, status: 'ACTIVE' });
-    const activeDemoScreens = await Screen.find({
-      seedKey: { $regex: `^${DEMO_THEATRE_KEY}-screen-` },
-      venue: demoVenue._id,
-    });
-    const demoShows = await Show.find({
-      seedKey: { $in: demoShowKeys },
-    }).populate('movie venue screen');
+    const scheduledShows = await Show.find({ seedKey: { $in: seededShowKeys } }).populate('movie venue screen');
     const seededEvents = await Event.find({ slug: { $in: seededEventSlugs } }).populate('venue');
 
-    if (seededMovies.length !== 4) {
-      throw new Error(`Expected 4 active seeded movies; found ${seededMovies.length}.`);
-    }
-    if (activeDemoScreens.length < seededMovies.length) {
-      throw new Error('A seeded movie does not have its own active demo screen.');
-    }
-    if (demoShows.length !== seededMovies.length * DEMO_SHOW_DAYS * showTimes.length) {
-      throw new Error(`Expected ${seededMovies.length * DEMO_SHOW_DAYS * showTimes.length} demo shows; found ${demoShows.length}.`);
+    if (seededMovies.length !== moviesData.length) throw new Error(`Expected ${moviesData.length} active seeded movies; found ${seededMovies.length}.`);
+    const expectedShowCount = activeCinemaVenues.length * SHOW_DATE_KEYS.length * DAILY_SHOW_TIMES.length;
+    if (scheduledShows.length !== expectedShowCount) throw new Error(`Expected ${expectedShowCount} scheduled shows; found ${scheduledShows.length}.`);
+
+    const showCountsByVenueDay = new Map();
+    const seenShowSlots = new Set();
+    const showIntervalsByScreen = new Map();
+    let availableSeatCount = 0;
+    const layoutSignatures = new Map();
+    for (const venueInfo of activeCinemaVenues) {
+      const primaryScreen = screenDocs.find(({ venue, screen }) => venue.key === venueInfo.key && screen.name === 'Screen 1')?.screen;
+      if (!primaryScreen) throw new Error(`${venueInfo.name} has no seeded screen.`);
+      const signature = `${primaryScreen.columns}|${primaryScreen.seatLayout.map((seat) => `${seat.seatType}:${seat.priceMultiplier}`).join(',')}`;
+      if ([...layoutSignatures.values()].includes(signature)) throw new Error(`Seating layout is not unique for ${venueInfo.name}.`);
+      layoutSignatures.set(venueInfo.key, signature);
     }
 
-    const movieShowCounts = new Map(seededMovies.map((movie) => [movie._id.toString(), 0]));
-    let availableSeatCount = 0;
-    for (const show of demoShows) {
-      if (!show.movie || !show.venue || !show.screen || show.status !== 'ACTIVE') {
-        throw new Error(`Demo show ${show._id} has a missing relationship or is inactive.`);
-      }
-      if (!movieShowCounts.has(show.movie._id.toString())) {
-        throw new Error(`Demo show ${show._id} references an unseeded movie.`);
-      }
-      if (!show.venue._id.equals(demoVenue._id) || !show.screen.venue.equals(show.venue._id)) {
-        throw new Error(`Demo show ${show._id} has mismatched venue/screen references.`);
-      }
-      if (show.showDate < show.movie.releaseDate) {
-        throw new Error(`Demo show ${show._id} is scheduled before its movie release date.`);
-      }
-      if (show.seatStatus.length !== show.screen.seatLayout.length) {
-        throw new Error(`Demo show ${show._id} does not have the full screen seat inventory.`);
-      }
+    for (const show of scheduledShows) {
+      if (!show.movie || !show.venue || !show.screen || show.status !== 'ACTIVE') throw new Error(`Show ${show._id} has a missing relationship or is inactive.`);
+      if (!show.screen.venue.equals(show.venue._id)) throw new Error(`Show ${show._id} has mismatched venue and screen references.`);
+      const dateKey = datePartsInKolkata(show.showDate);
+      if (!SHOW_DATE_KEYS.includes(dateKey)) throw new Error(`Show ${show._id} falls outside the requested date range.`);
+      if (show.showDate < show.movie.releaseDate) throw new Error(`Show ${show._id} is scheduled before its movie release date.`);
+      const start = scheduledStartDate(dateKey, show.startTime);
+      if (start <= new Date()) throw new Error(`Show ${show._id} is no longer in the future.`);
+
+      const slotKey = `${show.screen._id}|${dateKey}|${show.startTime}`;
+      if (seenShowSlots.has(slotKey)) throw new Error(`Duplicate show slot detected: ${slotKey}.`);
+      seenShowSlots.add(slotKey);
+      const screenDayKey = `${show.screen._id}|${dateKey}`;
+      const interval = { start: start.getTime(), end: start.getTime() + ((show.movie.duration || SHOW_DURATION_MINUTES) + SCREEN_CLEANING_MINUTES) * 60_000 };
+      const intervals = showIntervalsByScreen.get(screenDayKey) || [];
+      if (intervals.some((existing) => interval.start < existing.end && interval.end > existing.start)) throw new Error(`Screen schedule overlaps on ${dateKey} at ${show.screen.name}.`);
+      intervals.push(interval);
+      showIntervalsByScreen.set(screenDayKey, intervals);
+
+      const venueDayKey = `${show.venue._id}|${show.movie._id}|${dateKey}`;
+      showCountsByVenueDay.set(venueDayKey, (showCountsByVenueDay.get(venueDayKey) || 0) + 1);
+      if (show.seatStatus.length !== show.screen.seatLayout.length) throw new Error(`Show ${show._id} is missing its screen's seats.`);
+      const seatIds = new Set();
       for (const seat of show.seatStatus) {
-        if (!seat.seatId || !seat.row || !Number.isInteger(seat.number) || !seat.seatType ||
-            typeof seat.priceMultiplier !== 'number' || typeof seat.price !== 'number' || !seat.status) {
-          throw new Error(`Demo show ${show._id} contains an incomplete seat record.`);
+        if (!seat.seatId || !seat.row || !Number.isInteger(seat.number) || !seat.seatType || typeof seat.priceMultiplier !== 'number' || typeof seat.price !== 'number' || !seat.status) {
+          throw new Error(`Show ${show._id} contains an incomplete seat record.`);
         }
+        if (seatIds.has(seat.seatId)) throw new Error(`Show ${show._id} has duplicate seat IDs.`);
+        seatIds.add(seat.seatId);
         if (seat.status === 'AVAILABLE') availableSeatCount++;
       }
-      movieShowCounts.set(show.movie._id.toString(), movieShowCounts.get(show.movie._id.toString()) + 1);
     }
-    if ([...movieShowCounts.values()].some((count) => count < DEMO_SHOW_DAYS * showTimes.length)) {
-      throw new Error('At least one seeded movie is missing its demo show schedule.');
+
+    for (const venueInfo of activeCinemaVenues) {
+      const schedule = scheduleByVenue.get(venueInfo.key);
+      for (const dateKey of SHOW_DATE_KEYS) {
+        const count = schedule?.counts.get(dateKey) || 0;
+        if (count < DAILY_SHOW_TIMES.length) throw new Error(`${venueInfo.name} has fewer than three shows on ${dateKey}.`);
+        const key = `${venueInfo.venue._id}|${schedule.movie._id}|${dateKey}`;
+        if ((showCountsByVenueDay.get(key) || 0) < 3) throw new Error(`${venueInfo.name} is missing three shows on ${dateKey}.`);
+      }
     }
+    const seededScreens = await Screen.find({ seedKey: { $in: screenDocs.map(({ screen }) => screen.seedKey) } });
+    if (seededScreens.length !== screenDocs.length) throw new Error('Some seeded screens are missing from MongoDB.');
     if (seededEvents.length !== 2 || seededEvents.some((event) =>
       event.status !== 'ACTIVE' || !event.venue || event.venue.type !== 'EVENT_VENUE' ||
       !event.ticketCategories.length || event.ticketCategories.some((category) =>
@@ -1551,7 +1635,7 @@ const seedData = async () => {
 
     console.log('');
     console.log(
-      `🎬 Movies: ${moviesData.length}`
+      `🎬 Movies: ${moviesData.length} (inserted ${moviesCreated}, updated ${moviesUpdated}, skipped 0).`
     );
 
     console.log(`Events verified: ${seededEvents.length} (created ${eventsCreated}, updated ${eventsUpdated}, preserved ${eventsProtected} with bookings).`);
@@ -1569,13 +1653,33 @@ const seedData = async () => {
     );
 
     console.log(
-      `🎞️ Screens: ${screenDocs.length}`
+      `🎞️ Screens: ${screenDocs.length} (inserted ${screensCreated}, updated ${screensUpdated}, preserved ${screensProtected} with bookings).`
     );
 
-    console.log(`Demo shows verified: ${demoShows.length} (created ${showsCreated}, updated ${showsUpdated}, seats preserved for ${showsProtected} with bookings).`);
-    console.log(`Stale unbooked demo shows cancelled: ${staleShowsCancelled}.`);
-    console.log(`Demo theatre: ${demoVenue.name}; dedicated screens: ${activeDemoScreens.length}.`);
-    console.log(`Available demo seats: ${availableSeatCount}.`);
+    console.log(`Venues: ${venueDocs.length} (inserted ${venuesCreated}, updated ${venuesUpdated}, skipped 0).`);
+    console.log('Seed failures: 0.');
+
+    console.log(`Movie shows verified: ${scheduledShows.length} (created ${showsCreated}, updated ${showsUpdated}, seat inventory preserved for ${showsProtected} booked shows).`);
+    console.log(`Stale unbooked seed shows cancelled: ${staleShowsCancelled}.`);
+    console.log(`Active cinema venues: ${activeCinemaVenues.length}; screens prepared: ${screenDocs.length}.`);
+    console.log(`Available show seats: ${availableSeatCount}.`);
+    console.log('Show counts by date and city:');
+    for (const dateKey of SHOW_DATE_KEYS) {
+      for (const city of [...new Set(activeCinemaVenues.map((venue) => venue.city))]) {
+        const count = activeCinemaVenues.filter((venue) => venue.city === city)
+          .reduce((total, venue) => total + (scheduleByVenue.get(venue.key)?.counts.get(dateKey) || 0), 0);
+        console.log(`  ${dateKey} · ${city}: ${count}`);
+      }
+    }
+    console.log('Seating styles by theatre:');
+    for (const venue of activeCinemaVenues) {
+      const firstScreen = screenDocs.find(({ venue: item, screen }) => item.key === venue.key && screen.name === 'Screen 1')?.screen;
+      const styleCounts = firstScreen.seatLayout.reduce((counts, seat) => {
+        counts[seat.seatType] = (counts[seat.seatType] || 0) + 1;
+        return counts;
+      }, {});
+      console.log(`  ${venue.name}: ${firstScreen.rows} rows × ${firstScreen.columns} columns; ${Object.entries(styleCounts).map(([type, count]) => `${type} ${count}`).join(', ')}.`);
+    }
 
     console.log(
       `📍 Cities: ${cities.length}`

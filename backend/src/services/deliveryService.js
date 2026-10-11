@@ -1,4 +1,5 @@
-import nodemailer from 'nodemailer';
+
+import { renderBookingEmail } from './email/templates/bookingEmailLayout.js';
 
 /**
  * Format human-readable ticket message for SMS and WhatsApp
@@ -179,88 +180,58 @@ export const generateTicketEmailHtml = (booking) => {
 };
 
 /**
- * Configure or create Nodemailer transporter
- */
-const getMailTransporter = async () => {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-
-  // Create Ethereal test account if in non-production/unconfigured environment
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-  } catch (err) {
-    return null;
-  }
-};
-
-/**
- * Send Ticket via Email
+ * Send ticket mail through Brevo. Missing credentials fail explicitly instead of creating test inboxes.
  */
 export const sendTicketEmail = async (booking, recipientEmail) => {
   if (!recipientEmail) {
     return { success: false, channel: 'email', error: 'No recipient email provided' };
   }
 
-  const title = booking.movie?.title || booking.event?.name || 'Ticket';
-  const htmlContent = generateTicketEmailHtml(booking);
-  const fromAddress = process.env.EMAIL_FROM || '"CineVerse" <tickets@cineverse.com>';
-
-  const transporter = await getMailTransporter();
-  if (!transporter) {
-    console.log(`[SIMULATED EMAIL] To: ${recipientEmail} | Subject: Your CineVerse Ticket for ${title} (#${booking.bookingId})`);
-    return {
-      success: true,
-      channel: 'email',
-      simulated: true,
-      recipient: recipientEmail,
-      message: 'Simulated email delivery (SMTP not configured)',
-    };
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  if (!apiKey || !senderEmail) {
+    return { success: false, channel: 'email', error: 'Brevo email is not configured. Set BREVO_API_KEY and BREVO_SENDER_EMAIL.' };
   }
+
+  const title = booking.movie?.title || booking.event?.name || 'Ticket';
+  const attachment = booking.qrCode?.startsWith('data:image/png;base64,')
+    ? [{ name: 'cineverse-ticket-' + booking.bookingId + '.png', content: booking.qrCode.slice('data:image/png;base64,'.length) }]
+    : [];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const info = await transporter.sendMail({
-      from: fromAddress,
-      to: recipientEmail,
-      subject: `🎟️ Your CineVerse Ticket: ${title} (#${booking.bookingId})`,
-      html: htmlContent,
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender: { email: senderEmail, name: process.env.BREVO_SENDER_NAME || 'CineVerse' },
+        to: [{ email: recipientEmail }],
+        subject: 'CineVerse Ticket: ' + title + ' (#' + booking.bookingId + ')',
+        htmlContent: renderBookingEmail(booking, {
+          kind: 'confirmation',
+          frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+        }),
+        ...(attachment.length ? { attachment } : {}),
+      }),
+      signal: controller.signal,
     });
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`[EMAIL PREVIEW URL]: ${previewUrl}`);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error('[Brevo ticket email failed]', { status: response.status });
+      return { success: false, channel: 'email', error: 'Brevo could not send this email (HTTP ' + response.status + ').' };
     }
-
-    return {
-      success: true,
-      channel: 'email',
-      messageId: info.messageId,
-      previewUrl: previewUrl || null,
-      recipient: recipientEmail,
-    };
+    return { success: true, channel: 'email', messageId: data.messageId || '', recipient: recipientEmail };
   } catch (err) {
-    console.error('[Send Email Error]:', err.message);
-    return { success: false, channel: 'email', error: err.message };
+    const message = err.name === 'AbortError'
+      ? 'Brevo email request timed out.'
+      : 'Could not connect to Brevo to send this email.';
+    console.error('[Brevo ticket email failed]', { reason: err.name || 'EMAIL_ERROR' });
+    return { success: false, channel: 'email', error: message };
+  } finally {
+    clearTimeout(timeout);
   }
 };
-
 /**
  * Send Ticket via WhatsApp
  */

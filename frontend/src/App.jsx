@@ -21,6 +21,7 @@ const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const BookingsPage = lazy(() => import('./pages/BookingsPage.jsx'));
 const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage.jsx'));
+const BookingCancellationPage = lazy(() => import('./pages/BookingCancellationPage.jsx'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage.jsx'));
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage.jsx'));
 const SeatSelectionPage = lazy(() => import('./pages/SeatSelectionPage.jsx'));
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/profile" element={<SiteLayout><ProfilePage /></SiteLayout>} />
             <Route path="/bookings" element={<SiteLayout><BookingsPage /></SiteLayout>} />
+            <Route path="/bookings/:id/cancel" element={<SiteLayout><BookingCancellationPage /></SiteLayout>} />
             <Route path="/bookings/:id" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
             <Route path="/ticket/:bookingId" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
             <Route path="/booking/checkout" element={<SiteLayout><CheckoutPage /></SiteLayout>} />

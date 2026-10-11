@@ -5,6 +5,7 @@ import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useCity } from '../context/CityContext.jsx';
 import TrailerModal from '../components/TrailerModal.jsx';
+import { isScheduleInPast } from '../utils/schedule.js';
 
 export default function MovieDetailPage() {
   const { slug } = useParams();
@@ -237,10 +238,15 @@ export default function MovieDetailPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      {venueShows.map(show => (
+                      {venueShows.map(show => {
+                        const showHasStarted = isScheduleInPast(show.showDate, show.startTime);
+                        return (
                         <Link
                           key={show._id}
                           to={`/shows/${show._id}/seats`}
+                          aria-disabled={showHasStarted}
+                          tabIndex={showHasStarted ? -1 : undefined}
+                          onClick={event => { if (showHasStarted) event.preventDefault(); }}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -249,12 +255,17 @@ export default function MovieDetailPage() {
                             backgroundColor: 'var(--bg-secondary)',
                             border: '2px solid var(--border-color)',
                             borderRadius: '8px',
-                            color: '#fff',
+                            color: showHasStarted ? 'var(--text-muted)' : '#fff',
                             textDecoration: 'none',
                             transition: 'all 0.2s',
-                            minWidth: '100px'
+                            minWidth: '100px',
+                            opacity: showHasStarted ? 0.55 : 1,
+                            cursor: showHasStarted ? 'not-allowed' : 'pointer',
+                            pointerEvents: showHasStarted ? 'none' : 'auto',
+                            borderStyle: showHasStarted ? 'dashed' : 'solid'
                           }}
                           onMouseEnter={e => {
+                            if (showHasStarted) return;
                             e.currentTarget.style.borderColor = 'var(--accent-red)';
                             e.currentTarget.style.backgroundColor = 'rgba(229,9,20,0.15)';
                           }}
@@ -264,10 +275,11 @@ export default function MovieDetailPage() {
                           }}
                         >
                           <span style={{ fontWeight: '700', fontSize: '1rem' }}>{show.startTime}</span>
+                          {showHasStarted && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Show started</span>}
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{show.format} • {show.language}</span>
                           <span style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '4px' }}>₹{show.basePrice}+</span>
                         </Link>
-                      ))}
+                      );})}
                     </div>
                   </div>
                 ))}

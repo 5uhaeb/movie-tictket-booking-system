@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle, Mail, MessageSquare, Send, Download } from 'lucide-react';
+import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle, Mail, Download, ArrowLeft, Printer } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { downloadElementAsJpg } from '../utils/downloadJpg.js';
+import { downloadBookingTicketAsPng } from '../utils/downloadPng.js';
 
 export default function BookingDetailPage() {
   const { id, bookingId } = useParams();
@@ -12,24 +12,30 @@ export default function BookingDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const ticketRef = useRef(null);
   const [sendingDelivery, setSendingDelivery] = useState(null);
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
+  const [deliveryFailed, setDeliveryFailed] = useState(false);
 
   const handleSendTicket = async (channel) => {
     setSendingDelivery(channel);
     setDeliveryFeedback('');
+    setDeliveryFailed(false);
     try {
       const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
       if (res.data?.success) {
         const info = res.data.data?.[channel];
-        if (info?.previewUrl) {
-          setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
+        if (!info?.success) {
+          setDeliveryFailed(true);
+          setDeliveryFeedback(info?.error || 'Ticket email could not be sent. Please try again.');
         } else {
-          setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
+          setDeliveryFeedback(info.recipient ? `Ticket emailed to ${info.recipient}.` : 'Ticket email sent successfully.');
         }
+      } else {
+        setDeliveryFailed(true);
+        setDeliveryFeedback(res.data?.message || 'Ticket email could not be sent.');
       }
     } catch (err) {
+      setDeliveryFailed(true);
       setDeliveryFeedback(`Failed to send: ${err.response?.data?.message || err.message}`);
     } finally {
       setSendingDelivery(null);
@@ -76,11 +82,11 @@ export default function BookingDetailPage() {
     <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '40px 0' }}>
       <div className="container" style={{ maxWidth: '600px' }}>
         <Link to="/bookings" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '24px' }}>
-          â† Back to My Bookings
+          <ArrowLeft size={16} /> Back to My Bookings
         </Link>
 
         {/* Ticket Card */}
-        <div ref={ticketRef} style={{
+        <div style={{
           background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
           border: `1px solid ${isConfirmed ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-color)'}`,
           borderRadius: '20px', overflow: 'hidden',
@@ -106,30 +112,30 @@ export default function BookingDetailPage() {
               {booking.movie?.title || booking.event?.name}
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px', marginBottom: '24px' }}>
               {booking.venue && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Venue</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>ðŸ“ {booking.venue?.name}</div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} /> {booking.venue?.name}</div>
                 </div>
               )}
               {(booking.show?.showDate || booking.event?.date) && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Date</div>
                   <div style={{ color: '#fff', fontSize: '0.9rem' }}>
-                    ðŸ“… {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                    <Calendar size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                 </div>
               )}
               {(booking.show?.startTime || booking.event?.startTime) && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Time</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>ðŸ• {booking.show?.startTime || booking.event?.startTime}{(booking.show?.endTime || booking.event?.endTime) ? ` – ${booking.show?.endTime || booking.event?.endTime}` : ''}</div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem' }}><Clock size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {booking.show?.startTime || booking.event?.startTime}</div>
                 </div>
               )}
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Amount Paid</div>
-                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>â‚¹{booking.totalAmount}</div>
+                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(booking.totalAmount || 0)}</div>
               </div>
             </div>
 
@@ -161,8 +167,8 @@ export default function BookingDetailPage() {
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '8px' }}>Tickets</div>
                 {booking.ticketItems.map(item => (
                   <div key={item.categoryName} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', marginBottom: '6px', fontSize: '0.9rem' }}>
-                    <span>{item.categoryName} Ã— {item.quantity}</span>
-                    <span>â‚¹{item.price * item.quantity}</span>
+                    <span>{item.categoryName} × {item.quantity}</span>
+                    <span>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(item.price * item.quantity)}</span>
                   </div>
                 ))}
               </div>
@@ -187,15 +193,15 @@ export default function BookingDetailPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <QrCode size={80} color="var(--text-muted)" />
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending â€” QR code will appear after confirmation</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending — QR code will appear after confirmation</p>
                 </div>
               )}
               {/* Delivery notification feedback */}
               {deliveryFeedback && (
                 <div style={{
                   marginTop: '16px', padding: '10px 14px', borderRadius: '8px',
-                  backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
-                  color: '#86efac', fontSize: '0.85rem', textAlign: 'center', wordBreak: 'break-all'
+                  backgroundColor: deliveryFailed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.15)', border: `1px solid ${deliveryFailed ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  color: deliveryFailed ? '#fca5a5' : '#86efac', fontSize: '0.85rem', textAlign: 'center', wordBreak: 'break-all'
                 }}>
                   {deliveryFeedback}
                 </div>
@@ -221,32 +227,6 @@ export default function BookingDetailPage() {
                       <Mail size={14} color="#60a5fa" />
                       {sendingDelivery === 'email' ? 'Sending Email...' : 'Send to Email'}
                     </button>
-                    <button
-                      onClick={() => handleSendTicket('whatsapp')}
-                      disabled={sendingDelivery !== null}
-                      className="btn-outline"
-                      style={{
-                        flex: 1, minWidth: '130px', padding: '8px 12px', fontSize: '0.82rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <MessageSquare size={14} color="#22c55e" />
-                      {sendingDelivery === 'whatsapp' ? 'Sending WhatsApp...' : 'Send to WhatsApp'}
-                    </button>
-                    <button
-                      onClick={() => handleSendTicket('sms')}
-                      disabled={sendingDelivery !== null}
-                      className="btn-outline"
-                      style={{
-                        flex: 1, minWidth: '110px', padding: '8px 12px', fontSize: '0.82rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <Send size={14} color="#f59e0b" />
-                      {sendingDelivery === 'sms' ? 'Sending SMS...' : 'Send SMS'}
-                    </button>
                   </div>
                 </div>
               )}
@@ -258,37 +238,27 @@ export default function BookingDetailPage() {
                   className="btn-outline"
                   style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
                 >
-                  ðŸ–¨ï¸ Print Ticket
+                  <Printer size={16} /> Print Ticket
                 </button>
                 <button
                   type="button"
-                  onClick={() => downloadElementAsJpg(ticketRef.current, `CineVerse-${booking.bookingId || 'ticket'}.jpg`).catch(error => window.alert(error.message))}
+                  onClick={() => downloadBookingTicketAsPng(booking, `CineVerse-${booking.bookingId || 'ticket'}.png`).catch(error => window.alert(error.message))}
                   className="btn-outline"
                   style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
                 >
-                  <Download size={16} /> Download JPG
+                  <Download size={16} /> Download PNG
                 </button>
                 {isConfirmed && (
-                  <button
-                    onClick={async () => {
-                      if (!window.confirm('Cancel this booking?')) return;
-                      try {
-                        const res = await api.post(`/bookings/${booking._id}/cancel`);
-                        if (res.data?.success) {
-                          setBooking(res.data.data);
-                        }
-                      } catch (err) {
-                        alert(err.response?.data?.message || 'Cannot cancel booking.');
-                      }
-                    }}
+                  <Link
+                    to={`/bookings/${booking._id}/cancel`}
                     style={{
                       flex: 1, padding: '10px 16px', borderRadius: '8px',
                       backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                      color: '#ef4444', fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer'
+                      color: '#ef4444', fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'none'
                     }}
                   >
                     Cancel Booking
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>

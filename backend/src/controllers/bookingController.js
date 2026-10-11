@@ -1,7 +1,7 @@
 import { Booking } from '../models/Booking.js';
 import { Show } from '../models/Show.js';
 import { Event } from '../models/Event.js';
-import { cancelBooking, ensureSecureTicketQr } from '../services/bookingService.js';
+import { cancelBooking, ensureSecureTicketQr, getScheduledStart } from '../services/bookingService.js';
 import { sendTicketDelivery } from '../services/deliveryService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
@@ -37,6 +37,9 @@ export const createBooking = async (req, res, next) => {
         return errorResponse(res, 'Show not found', 'NOT_FOUND', 404);
       }
       if (showObj.status !== 'ACTIVE') return errorResponse(res, 'Show is not available for booking', 'SHOW_INACTIVE', 409);
+      if (getScheduledStart(showObj.showDate, showObj.startTime) <= new Date()) {
+        return errorResponse(res, 'This show has already started and is no longer available for booking.', 'SHOW_STARTED', 409);
+      }
 
       venueId = showObj.venue._id;
       movieId = showObj.movie._id;
