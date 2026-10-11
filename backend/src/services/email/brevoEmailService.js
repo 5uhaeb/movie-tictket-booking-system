@@ -35,7 +35,6 @@ const makeAttachment = (booking) => {
   return [{
     name: `cineverse-ticket-${booking.bookingId}.png`,
     content: booking.qrCode.slice('data:image/png;base64,'.length),
-    contentId: 'cineverse-ticket-qr',
   }];
 };
 

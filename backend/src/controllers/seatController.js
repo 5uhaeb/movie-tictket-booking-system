@@ -1,5 +1,5 @@
 import { Show } from '../models/Show.js';
-import { holdMovieSeats, releaseExpiredHolds } from '../services/bookingService.js';
+import { getScheduledStart, holdMovieSeats, releaseExpiredHolds } from '../services/bookingService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const getShowSeats = async (req, res, next) => {
@@ -15,6 +15,9 @@ export const getShowSeats = async (req, res, next) => {
     }
 
     const now = new Date();
+    if (show.status !== 'ACTIVE' || getScheduledStart(show.showDate, show.startTime) <= now) {
+      return errorResponse(res, 'This show has already started or is no longer available.', 'SHOW_UNAVAILABLE', 409);
+    }
 
     // Map seats so expired holds appear as AVAILABLE to the user
     const seats = show.seatStatus.map((seat) => {

@@ -3,6 +3,7 @@ import { Event } from '../models/Event.js';
 import { Booking } from '../models/Booking.js';
 import { Notification } from '../models/Notification.js';
 import { generateQRCode } from '../utils/qrGenerator.js';
+import { sendTicketDelivery } from './deliveryService.js';
 import crypto from 'crypto';
 import { sendBookingConfirmation, sendCancellationEmail } from './email/brevoEmailService.js';
 
@@ -114,6 +115,9 @@ export const holdMovieSeats = async (showId, seatIds, userId) => {
   }
 
   const now = new Date();
+  if (getScheduledStart(show.showDate, show.startTime) <= now) {
+    throw { statusCode: 409, message: 'This show has already started and is no longer available for booking.', errorCode: 'SHOW_STARTED' };
+  }
   const holdExpiresAt = new Date(now.getTime() + HOLD_DURATION_MINUTES * 60 * 1000);
 
   // Check seat availability
@@ -257,6 +261,11 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
   }
 
   await sendBookingConfirmationSafely(booking._id);
+
+  // Asynchronous Ticket Delivery via Email and WhatsApp/SMS
+  sendTicketDelivery(booking, { channels: ['email', 'whatsapp'] }).catch((err) => {
+    console.warn('[Ticket Delivery Async Warning]:', err.message);
+  });
 
   return booking;
 };

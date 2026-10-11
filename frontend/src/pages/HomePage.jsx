@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, Zap } from 'lucide-react';
 import api from '../services/api.js';
 import MovieReel from '../components/MovieReel.jsx';
-import MovieCard from '../components/MovieCard.jsx';
 import EventCard from '../components/EventCard.jsx';
 import ContentRow from '../components/ContentRow.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';

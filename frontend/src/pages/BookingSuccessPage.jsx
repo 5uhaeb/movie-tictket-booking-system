@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, Ticket, Printer, Home, CalendarDays, Clock3, MapPin, Download } from 'lucide-react';
-import { downloadElementAsJpg } from '../utils/downloadJpg.js';
+import { CheckCircle, Ticket, Home, CalendarDays, Clock3, MapPin, Download, Mail } from 'lucide-react';
+import api from '../services/api.js';
+import { downloadBookingTicketAsPng } from '../utils/downloadPng.js';
 
 const dateLabel = (value) => value
   ? new Date(value).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
@@ -11,7 +12,36 @@ export default function BookingSuccessPage() {
   const location = useLocation();
   const booking = location.state?.booking;
   const [printing, setPrinting] = useState(true);
-  const ticketRef = useRef(null);
+  const [sendingDelivery, setSendingDelivery] = useState(null);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
+  const [deliveryFailed, setDeliveryFailed] = useState(false);
+
+  const handleSendTicket = async (channel) => {
+    if (!booking?._id) return;
+    setSendingDelivery(channel);
+    setDeliveryFeedback('');
+    setDeliveryFailed(false);
+    try {
+      const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
+      if (res.data?.success) {
+        const info = res.data.data?.[channel];
+        if (!info?.success) {
+          setDeliveryFailed(true);
+          setDeliveryFeedback(info?.error || 'Ticket email could not be sent. Please try again.');
+        } else {
+          setDeliveryFeedback(info.recipient ? `Ticket emailed to ${info.recipient}.` : 'Ticket email sent successfully.');
+        }
+      } else {
+        setDeliveryFailed(true);
+        setDeliveryFeedback(res.data?.message || 'Ticket email could not be sent.');
+      }
+    } catch (err) {
+      setDeliveryFailed(true);
+      setDeliveryFeedback(`Delivery failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSendingDelivery(null);
+    }
+  };
 
   useEffect(() => {
     if (!booking) return undefined;
@@ -36,8 +66,8 @@ export default function BookingSuccessPage() {
   const showDate = booking.bookingType === 'EVENT' ? booking.event?.date : booking.show?.showDate;
   const showTime = booking.bookingType === 'EVENT' ? booking.event?.startTime : booking.show?.startTime;
   const seats = booking.seats?.map(seat => seat.seatId).filter(Boolean) || [];
-  const ticketLabels = booking.ticketItems?.map(item => `${item.categoryName} × ${item.quantity}`) || [];
-  const reservation = seats.length ? seats.join(', ') : ticketLabels.join(' · ');
+  const ticketLabels = booking.ticketItems?.map(item => `${item.categoryName} Ã— ${item.quantity}`) || [];
+  const reservation = seats.length ? seats.join(', ') : ticketLabels.join(' Â· ');
 
   return (
     <main className="cv-ticket-page">
@@ -45,8 +75,8 @@ export default function BookingSuccessPage() {
       <div className="container cv-ticket-container">
         <header className="cv-payment-success" aria-live="polite">
           <div className="cv-success-icon"><CheckCircle size={34} /></div>
-          <p className="cv-success-eyebrow">CINEVERSE · PAYMENT SUCCESSFUL</p>
-          <h1>{printing ? 'Your ticket is printing…' : 'Your night at the movies is set.'}</h1>
+          <p className="cv-success-eyebrow">CINEVERSE Â· PAYMENT SUCCESSFUL</p>
+          <h1>{printing ? 'Your ticket is printingâ€¦' : 'Your night at the movies is set.'}</h1>
           <p>Payment verified. Your booking is confirmed and the ticket is ready.</p>
         </header>
 
@@ -54,18 +84,18 @@ export default function BookingSuccessPage() {
           <div className="cv-printer-ticket-slot" aria-hidden="true" />
           <div className="cv-printer-face">
             <div className="cv-printer-brand"><span className="cv-printer-light" /> CINEVERSE TICKET PRINTER</div>
-            <div className="cv-printer-display"><Ticket size={19} /><span>{printing ? 'PRINTING YOUR EXPERIENCE' : 'TICKET READY · ENJOY THE SHOW'}</span></div>
+            <div className="cv-printer-display"><Ticket size={19} /><span>{printing ? 'PRINTING YOUR EXPERIENCE' : 'TICKET READY Â· ENJOY THE SHOW'}</span></div>
             <div className="cv-printer-output" aria-hidden="true"><span /></div>
           </div>
 
-          <article ref={ticketRef} className="cv-ticket-paper" aria-label={`${title} digital ticket`}>
+          <article className="cv-ticket-paper" aria-label={`${title} digital ticket`}>
             <div className="cv-ticket-topline">
-              <div className="cv-ticket-logo"><span>▶</span><strong>CINEVERSE</strong></div>
+              <div className="cv-ticket-logo"><span>â–¶</span><strong>CINEVERSE</strong></div>
               <span className="cv-ticket-paid">PAID</span>
             </div>
             <p className="cv-ticket-kicker">YOUR CINEMA EXPERIENCE</p>
             <h2>{title}</h2>
-            <div className="cv-ticket-venue"><MapPin size={15} /><span>{booking.venue?.name || 'Venue'} · {booking.venue?.city || booking.event?.city || 'Andhra Pradesh'}</span></div>
+            <div className="cv-ticket-venue"><MapPin size={15} /><span>{booking.venue?.name || 'Venue'} Â· {booking.venue?.city || booking.event?.city || 'Andhra Pradesh'}</span></div>
             <div className="cv-ticket-rule" />
             <div className="cv-ticket-facts">
               <div><span><CalendarDays size={13} /> DATE</span><strong>{dateLabel(showDate)}</strong></div>
@@ -81,7 +111,7 @@ export default function BookingSuccessPage() {
             <div className="cv-ticket-bottom">
               <div>
                 <span className="cv-ticket-total-label">TOTAL PAID</span>
-                <strong className="cv-ticket-total">₹{Number(booking.totalAmount || 0).toLocaleString('en-IN')}</strong>
+              <strong className="cv-ticket-total">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(booking.totalAmount || 0)}</strong>
               </div>
               {booking.qrCode ? <img className="cv-ticket-qr" src={booking.qrCode} alt="Secure CineVerse ticket QR code" /> : <div className="cv-ticket-qr-placeholder" aria-label="Ticket QR code is being generated" />}
             </div>
@@ -90,13 +120,47 @@ export default function BookingSuccessPage() {
           <div className="cv-printer-base" aria-hidden="true"><span /><span /><span /></div>
         </section>
 
+        {/* Delivery Feedback */}
+        {deliveryFeedback && (
+          <div style={{
+            margin: '20px auto', maxWidth: '520px', padding: '12px 16px', borderRadius: '10px',
+            backgroundColor: deliveryFailed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.15)', border: `1px solid ${deliveryFailed ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.3)'}`,
+            color: deliveryFailed ? '#fca5a5' : '#86efac', fontSize: '0.88rem', textAlign: 'center', wordBreak: 'break-all'
+          }}>
+            {deliveryFeedback}
+          </div>
+        )}
+
+        {/* Quick Ticket Delivery Options */}
+        <div className="glass-card" style={{ maxWidth: '520px', margin: '0 auto 24px auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ color: '#fff', fontWeight: '600', fontSize: '0.92rem' }}>Send copy of ticket</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Receive an instant QR pass by email</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleSendTicket('email')}
+              disabled={sendingDelivery !== null}
+              className="btn-outline"
+              style={{
+                padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <Mail size={14} color="#60a5fa" />
+              {sendingDelivery === 'email' ? 'Sending...' : 'Email'}
+            </button>
+          </div>
+        </div>
+
         <nav className="cv-ticket-actions" aria-label="Ticket actions">
           <Link to={`/bookings/${booking._id || booking.bookingId}`} className="btn-primary"><Ticket size={17} /> View Ticket</Link>
           <button
             type="button"
             className="btn-outline"
-            onClick={() => downloadElementAsJpg(ticketRef.current, `CineVerse-${booking.bookingId || 'ticket'}.jpg`).catch(error => window.alert(error.message))}
-          ><Download size={17} /> Download JPG</button>
+            onClick={() => downloadBookingTicketAsPng(booking, `CineVerse-${booking.bookingId || 'ticket'}.png`).catch(error => window.alert(error.message))}
+          ><Download size={17} /> Download PNG</button>
           <Link to="/" className="btn-outline"><Home size={17} /> Back to Home</Link>
           <Link to="/bookings" className="btn-outline">My Bookings</Link>
         </nav>

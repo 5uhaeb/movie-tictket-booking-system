@@ -1,0 +1,74 @@
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 15, unit: 'MINUTES')
+    }
+
+    environment {
+        FRONTEND_DIR = 'frontend'
+        DEPLOY_DIR = '/opt/cineverse/frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify Frontend') {
+            steps {
+                sh '''
+                    set -eu
+                    test -f "$FRONTEND_DIR/package.json"
+                    test -f "$FRONTEND_DIR/package-lock.json"
+                    node --version
+                    npm --version
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('frontend') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    sh 'npm run build'
+                    sh 'test -f dist/index.html'
+                }
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                sh '''
+                    set -eu
+                    test -d "$FRONTEND_DIR/dist"
+
+                    rsync -av --delete \
+                      "$WORKSPACE/$FRONTEND_DIR/dist/" \
+                      "$DEPLOY_DIR/"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Cineverse frontend build and deployment succeeded.'
+        }
+        failure {
+            echo 'Frontend pipeline failed. Check the stage logs in Console Output.'
+        }
+    }
+}
