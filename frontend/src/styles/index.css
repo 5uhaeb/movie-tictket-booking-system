@@ -90,6 +90,22 @@ button {
   padding: 0 24px;
 }
 
+.content-row-grid {
+  grid-template-columns: repeat(var(--content-row-columns, 4), minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .content-row-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .content-row-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 380px) {
+  .content-row-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Premium Buttons */
 .btn-primary {
   background: var(--accent-red);

@@ -71,7 +71,7 @@ export default function HomePage() {
         {moviesLoading && <LoadingSpinner message="Loading movies..." />}
         {!moviesLoading && moviesError && <p role="status" style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Movies are temporarily unavailable. Please try again shortly.</p>}
         {!moviesLoading && data.nowShowing.length > 0 && (
-          <ContentRow title={`Now Showing in ${selectedCity}`} icon={Calendar}>
+          <ContentRow title={`Now Showing in ${selectedCity}`} icon={Calendar} columns={4}>
             {data.nowShowing.map((movie) => <div key={movie._id} style={{ scrollSnapAlign: 'start' }}><MovieCard movie={movie} /></div>)}
           </ContentRow>
         )}

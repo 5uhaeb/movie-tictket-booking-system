@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function ContentRow({ title, icon: Icon, children }) {
+export default function ContentRow({ title, icon: Icon, children, columns }) {
   const rowRef = useRef(null);
 
   const handleScroll = (direction) => {
@@ -59,12 +59,12 @@ export default function ContentRow({ title, icon: Icon, children }) {
       {/* Scrollable Container */}
       <div
         ref={rowRef}
+        className={columns ? 'content-row-grid' : undefined}
         style={{
           display: 'grid',
-          gridAutoFlow: 'column',
-          gridAutoColumns: 'minmax(200px, 1fr)',
+          ...(columns ? { '--content-row-columns': columns } : { gridAutoFlow: 'column', gridAutoColumns: 'minmax(200px, 1fr)' }),
           gap: '20px',
-          overflowX: 'auto',
+          overflowX: columns ? 'visible' : 'auto',
           scrollSnapType: 'x mandatory',
           scrollbarWidth: 'none',
           paddingBottom: '10px'
