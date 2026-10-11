@@ -3,6 +3,7 @@ import { Event } from '../models/Event.js';
 import { Booking } from '../models/Booking.js';
 import { Notification } from '../models/Notification.js';
 import { generateQRCode } from '../utils/qrGenerator.js';
+import { sendTicketDelivery } from './deliveryService.js';
 import crypto from 'crypto';
 import { sendBookingConfirmation, sendCancellationEmail } from './email/brevoEmailService.js';
 
@@ -257,6 +258,11 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
   }
 
   await sendBookingConfirmationSafely(booking._id);
+
+  // Asynchronous Ticket Delivery via Email and WhatsApp/SMS
+  sendTicketDelivery(booking, { channels: ['email', 'whatsapp'] }).catch((err) => {
+    console.warn('[Ticket Delivery Async Warning]:', err.message);
+  });
 
   return booking;
 };

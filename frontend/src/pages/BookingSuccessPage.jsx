@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, Ticket, Printer, Home, CalendarDays, Clock3, MapPin, Download } from 'lucide-react';
+import { CheckCircle, Ticket, Home, CalendarDays, Clock3, MapPin, Download, Mail, MessageSquare } from 'lucide-react';
+import api from '../services/api.js';
 import { downloadElementAsJpg } from '../utils/downloadJpg.js';
 
 const dateLabel = (value) => value
@@ -12,6 +13,29 @@ export default function BookingSuccessPage() {
   const booking = location.state?.booking;
   const [printing, setPrinting] = useState(true);
   const ticketRef = useRef(null);
+  const [sendingDelivery, setSendingDelivery] = useState(null);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
+
+  const handleSendTicket = async (channel) => {
+    if (!booking?._id) return;
+    setSendingDelivery(channel);
+    setDeliveryFeedback('');
+    try {
+      const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
+      if (res.data?.success) {
+        const info = res.data.data?.[channel];
+        if (info?.previewUrl) {
+          setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
+        } else {
+          setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
+        }
+      }
+    } catch (err) {
+      setDeliveryFeedback(`Delivery failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSendingDelivery(null);
+    }
+  };
 
   useEffect(() => {
     if (!booking) return undefined;
@@ -89,6 +113,53 @@ export default function BookingSuccessPage() {
           </article>
           <div className="cv-printer-base" aria-hidden="true"><span /><span /><span /></div>
         </section>
+
+        {/* Delivery Feedback */}
+        {deliveryFeedback && (
+          <div style={{
+            margin: '20px auto', maxWidth: '520px', padding: '12px 16px', borderRadius: '10px',
+            backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
+            color: '#86efac', fontSize: '0.88rem', textAlign: 'center', wordBreak: 'break-all'
+          }}>
+            {deliveryFeedback}
+          </div>
+        )}
+
+        {/* Quick Ticket Delivery Options */}
+        <div className="glass-card" style={{ maxWidth: '520px', margin: '0 auto 24px auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ color: '#fff', fontWeight: '600', fontSize: '0.92rem' }}>Send copy of ticket</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Receive instant QR pass to your email or WhatsApp</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleSendTicket('email')}
+              disabled={sendingDelivery !== null}
+              className="btn-outline"
+              style={{
+                padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <Mail size={14} color="#60a5fa" />
+              {sendingDelivery === 'email' ? 'Sending...' : 'Email'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendTicket('whatsapp')}
+              disabled={sendingDelivery !== null}
+              className="btn-outline"
+              style={{
+                padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <MessageSquare size={14} color="#22c55e" />
+              {sendingDelivery === 'whatsapp' ? 'Sending...' : 'WhatsApp'}
+            </button>
+          </div>
+        </div>
 
         <nav className="cv-ticket-actions" aria-label="Ticket actions">
           <Link to={`/bookings/${booking._id || booking.bookingId}`} className="btn-primary"><Ticket size={17} /> View Ticket</Link>
